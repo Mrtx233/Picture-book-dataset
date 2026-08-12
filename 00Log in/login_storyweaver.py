@@ -44,7 +44,7 @@ print("\n[2] 发送登录请求...")
 login_url = "https://storyweaver.org.in/node/api/v1/users/sign_in"
 
 data = {
-    "user[email]": "sdOR5b6pxn@outlook.com",
+    "user[email]": "sDOUWr2ngs@outlook.com",
     "user[password]": "12345678",
 }
 

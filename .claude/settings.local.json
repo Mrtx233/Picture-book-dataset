@@ -18,7 +18,12 @@
       "Bash(rm -f output_pdf/*.pdf)",
       "Bash(rm -rf output_jpg output_pdf_jpg.json)",
       "Bash(.venv/Scripts/python -c \"import DrissionPage; print\\(DrissionPage.__version__\\)\")",
-      "Bash(.venv/Scripts/pip install *)"
+      "Bash(.venv/Scripts/pip install *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'feat: 添加自动登录、绘本下载、解压渲染流程 *)",
+      "Bash(git rm *)",
+      "Bash(git commit *)",
+      "Bash(python -c ' *)"
     ]
   }
 }
