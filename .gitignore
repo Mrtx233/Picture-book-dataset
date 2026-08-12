@@ -1,0 +1,5 @@
+# 排除下载的绘本 ZIP 文件
+01Reverse crawler/output/
+
+# 排除解压生成的 PDF 和 JPG
+02Processing/output_pdf/

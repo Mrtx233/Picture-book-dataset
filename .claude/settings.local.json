@@ -16,7 +16,9 @@
       "Bash(PYTHONIOENCODING=utf-8 \"D:/A_PythonCode/Picture book dataset/.venv/Scripts/python.exe\" 拆解pdf为jpgJSON.py)",
       "Bash(PYTHONIOENCODING=utf-8 'D:/A_PythonCode/Picture book dataset/.venv/Scripts/python.exe' -c ' *)",
       "Bash(rm -f output_pdf/*.pdf)",
-      "Bash(rm -rf output_jpg output_pdf_jpg.json)"
+      "Bash(rm -rf output_jpg output_pdf_jpg.json)",
+      "Bash(.venv/Scripts/python -c \"import DrissionPage; print\\(DrissionPage.__version__\\)\")",
+      "Bash(.venv/Scripts/pip install *)"
     ]
   }
 }
