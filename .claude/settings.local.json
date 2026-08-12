@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python 1.py)",
+      "Bash(where python *)",
+      "Bash(pip show *)",
+      "Bash(\"../.venv/Scripts/python.exe\" 1.py)",
+      "Bash(../.venv/Scripts/python.exe -c ' *)",
+      "Bash(python -c \"f=open\\('1.zip','rb'\\); h=f.read\\(8\\); print\\('header bytes:', h\\); print\\('is ZIP:', h[:2]==b'PK'\\); print\\('is PDF:', h[:4]==b'%PDF'\\)\")",
+      "Bash(\"../.venv/Scripts/python.exe\" -m py_compile 1.py)",
+      "Bash(PYTHONIOENCODING=utf-8 \"../.venv/Scripts/python.exe\" 1.py)",
+      "Bash(PYTHONIOENCODING=utf-8 ../.venv/Scripts/python.exe -c ' *)",
+      "Bash('D:/A_PythonCode/Picture book dataset/.venv/Scripts/python.exe' -c ' *)",
+      "Bash(PYTHONIOENCODING=utf-8 \"D:/A_PythonCode/Picture book dataset/.venv/Scripts/python.exe\" 解压转移MD5JSON.py)",
+      "Bash(\"D:/A_PythonCode/Picture book *)",
+      "Bash(PYTHONIOENCODING=utf-8 \"D:/A_PythonCode/Picture book dataset/.venv/Scripts/python.exe\" 拆解pdf为jpgJSON.py)",
+      "Bash(PYTHONIOENCODING=utf-8 'D:/A_PythonCode/Picture book dataset/.venv/Scripts/python.exe' -c ' *)",
+      "Bash(rm -f output_pdf/*.pdf)",
+      "Bash(rm -rf output_jpg output_pdf_jpg.json)"
+    ]
+  }
+}
