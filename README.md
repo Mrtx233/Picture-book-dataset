@@ -17,10 +17,13 @@
 │   └── stories.json             # 任务记录，含 status 和 failed_at
 │
 ├── 02Processing/
-│   └── 拆包.py                   # 解压 ZIP → 渲染 JPG（≥720p、删首尾页）→ 写 metadata.jsonl
+│   └── 21拆包.py                 # 解压 ZIP → 渲染 JPG（≥720p、删首尾页）→ 写 metadata.jsonl
 │
-└── 03Finishing process/
-    └── 01图片分析.py             # 文字块占比筛选 → 保留大插图页 → 写 metadata.jsonl
+├── 03Finishing process/
+│   └── 31图片分析.py             # 文字块占比筛选 → 保留大插图页 → 写 metadata.jsonl
+│
+└── 04Language identification/
+    └── 41语种识别.py             # 每张图 OCR 识别中英文 → 按语种分文件夹 → 写 metadata.jsonl
 ```
 
 ## 环境要求
@@ -29,6 +32,8 @@
 pip install curl_cffi pymupdf opencv-python
 # 注册脚本（00Log in/sign up.py）另需
 pip install selenium
+# 语种识别（04Language identification/41语种识别.py）另需
+pip install rapidocr_onnxruntime
 ```
 
 ## 使用流程
@@ -60,9 +65,9 @@ https://storyweaver.org.in/en/stories/39753-rabbit-becomes-a-chef
 
 ZIP 文件保存到 `01Reverse crawler/output/`。
 
-### 4. 拆包渲染（02Processing/拆包.py）
+### 4. 拆包渲染（02Processing/21拆包.py）
 
-运行 `02Processing/拆包.py`：
+运行 `02Processing/21拆包.py`：
 
 - 从 ZIP 中直接读取 PDF（不落盘，按 MD5 去重）
 - 逐页渲染 JPG，分辨率不低于 720p（1280×720），页面较小时自动提高缩放倍数
@@ -70,15 +75,24 @@ ZIP 文件保存到 `01Reverse crawler/output/`。
 - 每本绘本输出到 `02Processing/output_pdf/{slug}_{日期}_{保留页数}/`
 - 每本处理完立即追加一行到 `metadata.jsonl`，重跑时已记录的绘本自动跳过
 
-### 5. 图片筛选（03Finishing process/01图片分析.py）
+### 5. 图片筛选（03Finishing process/31图片分析.py）
 
-运行 `03Finishing process/01图片分析.py`：
+运行 `03Finishing process/31图片分析.py`：
 
 - 扫描 `02Processing/output_pdf/` 下每个绘本文件夹
 - 逐张计算文字块占比：二值化 → 按字符尺寸过滤掉插画黑色大轮廓 → 膨胀合并文字为文本块 → 包围盒面积 / 整图面积
 - 文字块占比 < 50% 保留（大插图页），≥ 50% 过滤（大段文字页）
 - 保留图复制到 `03Finishing process/output_jpg_crop/{slug}_{日期}_{保留张数}/`
 - 每本处理完立即追加一行到 `metadata.jsonl`，重跑时已处理的绘本自动跳过
+
+### 6. 语种识别（04Language identification/41语种识别.py）
+
+运行 `04Language identification/41语种识别.py`：
+
+- 读取 `03Finishing process/metadata.jsonl`，图片从 `output_jpg_crop/` 读取
+- 每张图用 rapidocr 识别文字，按中文字符 vs 英文字符数量判定语种
+- 图片按语种复制到 `04Language identification/中文/{书目录}/` 或 `英文/{书目录}/`
+- 每本处理完追加一行到 `metadata.jsonl`，image_url 带语种前缀，重跑时已处理的绘本自动跳过
 
 ## 数据格式
 
@@ -104,7 +118,7 @@ ZIP 文件保存到 `01Reverse crawler/output/`。
 }
 ```
 
-### metadata.jsonl（02Processing / 03Finishing process 生成）
+### metadata.jsonl（02Processing / 03Finishing process / 04Language identification 生成）
 
 每本绘本一行：
 
@@ -114,6 +128,7 @@ ZIP 文件保存到 `01Reverse crawler/output/`。
 
 - 文件夹名 `{slug}_{日期}_{保留张数}`，末尾数字即该文件夹实际图片数
 - 02Processing 的 `image_url` 相对 `02Processing/output_pdf/`，03Finishing process 的相对 `03Finishing process/output_jpg_crop/`
+- 04Language identification 的带语种前缀（`中文/` 或 `英文/`），相对 `04Language identification/`
 
 ## 技术要点
 

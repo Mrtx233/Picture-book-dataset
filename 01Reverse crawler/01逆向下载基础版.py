@@ -12,6 +12,8 @@ OUTPUT_DIR = r"D:\A_PythonCode\Picture book dataset\01Reverse crawler\output"
 TASKS_JSON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stories.json")
 # 登录账号
 PASSWORD = "12345678"
+# [1] 检查用户状态固定使用的邮箱（不参与登录轮换）
+STATUS_CHECK_EMAIL = "mrtx0505@outlook.com"
 # 邮箱列表 JSON 文件
 EMAILS_JSON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outlook.json")
 # ============================================================
@@ -92,7 +94,7 @@ def do_login(session, email):
     print("[1] 检查用户状态...")
     resp = session.get(
         "https://storyweaver.org.in/node/api/v1/user/status",
-        params={"email": email},
+        params={"email": STATUS_CHECK_EMAIL},
         headers=headers,
     )
     print(f"状态码: {resp.status_code}  |  响应: {resp.text}")

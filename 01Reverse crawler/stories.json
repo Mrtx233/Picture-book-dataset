@@ -214,5 +214,66 @@
   },
   "https://storyweaver.org.in/en/stories/339149-have-you-ever-climbed-a-tree": {
     "status": "success"
+  },
+  "https://storyweaver.org.in/en/stories/7-fat-king-thin-dog": {
+    "status": "success"
+  },
+  "https://storyweaver.org.in/en/stories/16411-too-big-too-small": {
+    "status": "success"
+  },
+  "https://storyweaver.org.in/en/stories/1281-it-s-all-the-cat-s-fault": {
+    "status": "success"
+  },
+  "https://storyweaver.org.in/en/stories/24620-a-book-for-puchku": {
+    "status": "success"
+  },
+  "https://storyweaver.org.in/en/stories/283-annual-haircut-day": {
+    "status": "success"
+  },
+  "https://storyweaver.org.in/en/stories/208-too-many-bananas": {
+    "status": "success"
+  },
+  "https://storyweaver.org.in/en/stories/49-my-fish-no-my-fish": {
+    "status": "success"
+  },
+  "https://storyweaver.org.in/en/stories/876-mouse-in-the-house": {
+    "status": "success"
+  },
+  "https://storyweaver.org.in/en/stories/332-bheema-the-sleepyhead": {
+    "status": "success"
+  },
+  "https://storyweaver.org.in/en/stories/446500-leela-learns-to-ride": {
+    "status": "success"
+  },
+  "https://storyweaver.org.in/en/stories/48016-gappu-can-t-dance": {
+    "status": "success"
+  },
+  "https://storyweaver.org.in/en/stories/12294-the-race": {
+    "status": "success"
+  },
+  "https://storyweaver.org.in/en/stories/122-no-smiles-today": {
+    "status": "success"
+  },
+  "https://storyweaver.org.in/en/stories/393-kahani-kelon-ki": {
+    "status": "success"
+  },
+  "https://storyweaver.org.in/en/stories/946-too-much-noise": {
+    "status": "failed",
+    "failed_at": "2026-08-14 14:52:33"
+  },
+  "https://storyweaver.org.in/en/stories/987-tak-tak": {
+    "status": "pending"
+  },
+  "https://storyweaver.org.in/en/stories/14406-the-greedy-mouse": {
+    "status": "pending"
+  },
+  "https://storyweaver.org.in/en/stories/60809-the-lion-s-howdah": {
+    "status": "pending"
+  },
+  "https://storyweaver.org.in/en/stories/60812-the-roti-roll": {
+    "status": "pending"
+  },
+  "https://storyweaver.org.in/en/stories/21602-watch-out-the-tiger-is-here": {
+    "status": "pending"
   }
 }

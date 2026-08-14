@@ -6,3 +6,7 @@
 
 # 排除处理生成的图片
 03Finishing process/output_jpg_crop/
+
+# 排除语种识别生成的图片
+04Language identification/中文/
+04Language identification/英文/
