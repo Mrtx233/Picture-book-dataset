@@ -5,5 +5,4 @@
 02Processing/output_pdf/
 
 # 排除处理生成的图片
-03Finishing process/output_jpg
 03Finishing process/output_jpg_crop/
