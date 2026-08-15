@@ -1,6 +1,6 @@
 # 合并流程：遍历 ..\01Reverse crawler\output 中的 zip
 #   1. 从 zip 中直接读取 PDF（不落盘），去重后决定每本的保留页
-#   2. 逐页渲染 JPG 到同一文件夹，命名 {md5}_{原页码:补零}.jpg，分辨率不低于 720p（1280x720）
+#   2. 逐页渲染 JPG 到同一文件夹，裁掉四周各 3%（去除白边/扫描边框），命名 {md5}_{原页码:补零}.jpg，分辨率不低于 720p（1280x720）
 #      删除首页及末尾 4 页（不渲染、不保存、不纳入 metadata），保留页沿用原 PDF 页码，不重新编号
 #   3. 每本绘本处理完成后立即追加一行到 metadata.jsonl，格式：{"data":[{"type":"image","image_url":"..."}, ...]}
 # 源 zip 不删除；已存在的 JPG 跳过；被删页的旧 JPG 自动清理；已在 jsonl 中的绘本跳过
@@ -28,6 +28,8 @@ ZOOM = 2
 MIN_WIDTH = 1280
 MIN_HEIGHT = 720
 JPEG_QUALITY = 90
+# 裁剪比例：渲染后裁掉四周各 3%，去除 PDF 白边/扫描边框
+CROP_RATIO = 0.03
 
 # 文件夹名中的日期（运行当天）
 TODAY = datetime.now().strftime("%Y%m%d")
@@ -120,7 +122,15 @@ for filename in sorted(os.listdir(ZIP_DIR)):
                     page = doc[page_index]
                     # 按页面尺寸动态算缩放倍数，保证渲染结果至少 1280x720（720p）
                     zoom = max(ZOOM, MIN_WIDTH / page.rect.width, MIN_HEIGHT / page.rect.height)
-                    pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False)
+                    # 裁掉四周白边/扫描边框（各 3%），在渲染时裁剪避免后处理
+                    rect = page.rect
+                    clip = fitz.Rect(
+                        rect.x0 + rect.width * CROP_RATIO,
+                        rect.y0 + rect.height * CROP_RATIO,
+                        rect.x1 - rect.width * CROP_RATIO,
+                        rect.y1 - rect.height * CROP_RATIO,
+                    )
+                    pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom), alpha=False, clip=clip)
                     pix.save(image_path, jpg_quality=JPEG_QUALITY)
                     image_names.append(image_name)
 

@@ -2,9 +2,12 @@
 扫描 02Processing/output_pdf 下的子文件夹（每本绘本一个目录，如 529-masala-chai_20260814_23）：
   1. 逐张计算文字块区域占比 text_block_ratio
      （二值化 → 按字符尺寸过滤掉插画黑色大轮廓 → 膨胀合并文字成文本块 → 包围盒面积 / 整图面积）
-  2. text_block_ratio < 50% 的保留（大插图页），>= 50% 的过滤（大段文字页）
+  2. text_block_ratio < 50% 的保留（大插图页），其余过滤
+  3. 计算插图连通块占比 illustration_blob_ratio 和原始图片白色占比 white_ratio，
+     白色背景页（white>=85%）需要更大插图块（>=10%）才保留，防止白底小装饰/文字页漏过
   3. 保留图按实际张数重命名文件夹 {slug}_{日期}_{保留数} 保存到 output_jpg_crop
-  4. 每本处理完立即追加一行 jsonl，支持断点续跑
+  4. 保留不足 4 张（<=3 张）的书不复制，记入 skipped_books.jsonl
+  5. 每本处理完立即追加一行 jsonl，支持断点续跑
 """
 import json
 import os
@@ -18,9 +21,19 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_ROOT = os.path.join(BASE_DIR, "..", "02Processing", "output_pdf")
 OUTPUT_JSONL = os.path.join(BASE_DIR, "metadata.jsonl")
 OUTPUT_CROP_DIR = os.path.join(BASE_DIR, "output_jpg_crop")
+# 保留张数过少的书记到单独的 jsonl，不进 metadata.jsonl
+SKIPPED_JSONL = os.path.join(BASE_DIR, "skipped_books.jsonl")
 
 # 文字块占比低于此值才保留（大插图页）
 TEXT_THRESHOLD = 0.5
+# 插图连通块占比低于此值判定为白底黑字页/空白页，过滤
+BLOB_THRESHOLD = 0.03
+# 白色背景占比阈值：原始图片灰度 >230 的像素比例高于此值视为白底页
+WHITE_BG_THRESHOLD = 0.85
+# 白底页的插图块阈值：白底页需要更大的插图块（>=10%）才视为有效插图页
+WHITE_PAGE_BLOB_THRESHOLD = 0.10
+# 保留张数不足此值的书整体丢弃（不复制、不进 metadata.jsonl）
+MIN_KEEP_COUNT = 4
 # 膨胀核：横向大把一行内单词粘连，纵向小区分不同段落
 KERNEL_SIZE = (18, 12)
 # 字符尺寸上限：超过判定为绘画线条轮廓，直接丢弃（过滤插画黑色大轮廓）
@@ -71,6 +84,50 @@ def calc_text_block_area_ratio(img_path, kernel_size=KERNEL_SIZE, max_char_box_w
     return round(text_ratio, 4)
 
 
+def calc_illustration_blob_ratio(img_path):
+    """
+    计算最大"插图连通块"占整图面积比。
+    插图（彩色或暗色笔画）经小核膨胀后笔画连成一大块；
+    白底黑字页的字符彼此独立、保持细碎，最大块远小于插图。
+    页眉页脚的宽扁色带、细长实心装饰条不属于插图，剔除。
+    :return: blob_ratio (0~1)
+    """
+    img = cv2.imread(img_path)
+    if img is None:
+        return 0.0
+    h, w = img.shape[:2]
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    _, dark = cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    color = ((hsv[:, :, 1] > 40) & (hsv[:, :, 2] > 60)).astype(np.uint8) * 255
+    combined = cv2.bitwise_or(dark, color)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+    merged = cv2.dilate(combined, kernel)
+
+    n, _, stats, _ = cv2.connectedComponentsWithStats(merged, connectivity=8)
+    best = 0
+    for i in range(1, n):
+        cw, ch = stats[i, 2], stats[i, 3]
+        area = int(stats[i, cv2.CC_STAT_AREA])
+        fill = area / (cw * ch)
+        aspect = max(cw, ch) / max(1, min(cw, ch))
+        if cw > 0.8 * w and ch < 0.15 * h:
+            continue  # 页眉页脚宽扁色带
+        if fill > 0.9 and aspect >= 2.5:
+            continue  # 细长实心装饰条
+        best = max(best, area)
+    return round(best / (h * w), 4)
+
+
+def calc_white_ratio(img_path):
+    """计算原始图片的白色背景占比（灰度 > 230 的像素比例）"""
+    img = cv2.imread(img_path)
+    if img is None:
+        return 1.0
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    return round(float((gray > 230).mean()), 4)
+
+
 def load_books():
     """扫描 output_pdf 下的子文件夹，每个文件夹是一本绘本，返回 [{book_dir, images:[image_url,...]}, ...]"""
     books = []
@@ -94,22 +151,30 @@ def load_books():
 
 
 def load_done():
-    """读取已有输出 jsonl，返回已处理完的绘本集合（以 {slug}_{日期} 为键，断点续跑）"""
+    """读取已有输出 jsonl（含 skipped），返回已处理完的绘本集合（以 {slug}_{日期} 为键，断点续跑）"""
     done = set()
-    if not os.path.isfile(OUTPUT_JSONL):
-        return done
-    with open(OUTPUT_JSONL, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                data = json.loads(line).get("data", [])
-                first = next((img.get("image_url") for img in data if img.get("image_url")), None)
-                if first:
-                    done.add(first.split("/", 1)[0].rsplit("_", 2)[0])
-            except (json.JSONDecodeError, IndexError, AttributeError):
-                continue
+    files = [OUTPUT_JSONL, SKIPPED_JSONL]
+    for path in files:
+        if not os.path.isfile(path):
+            continue
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                    # skipped_books.jsonl 格式：{"book_dir": "..."}
+                    if "book_dir" in obj:
+                        done.add(obj["book_dir"].rsplit("_", 2)[0])
+                        continue
+                    # metadata.jsonl 格式：{"data": [{"image_url": "..."}]}
+                    data = obj.get("data", [])
+                    first = next((img.get("image_url") for img in data if img.get("image_url")), None)
+                    if first:
+                        done.add(first.split("/", 1)[0].rsplit("_", 2)[0])
+                except (json.JSONDecodeError, IndexError, AttributeError):
+                    continue
     return done
 
 
@@ -123,6 +188,7 @@ def main():
     total_books = len(books)
     new_books = 0
     new_images = 0
+    skipped_books = 0
 
     for book_index, book in enumerate(books, 1):
         base = book["book_dir"].rsplit("_", 2)[0]  # {slug}_{日期}
@@ -142,14 +208,36 @@ def main():
                 continue
 
             ratio = calc_text_block_area_ratio(img_full_path)
-            if ratio < TEXT_THRESHOLD:
+            blob = calc_illustration_blob_ratio(img_full_path)
+            white_ratio = calc_white_ratio(img_full_path)
+
+            # 白底页需要更大的插图块才保留
+            is_white_page = white_ratio >= WHITE_BG_THRESHOLD
+            blob_needed = WHITE_PAGE_BLOB_THRESHOLD if is_white_page else BLOB_THRESHOLD
+
+            if ratio < TEXT_THRESHOLD and blob >= blob_needed:
                 kept_names.append(img_name)
-                print(f"      文字块占比 {ratio:.2%} < 50%，保留")
+                print(f"      文字块占比 {ratio:.2%}  插图块占比 {blob:.2%}  白底{white_ratio:.0%}  保留")
             else:
-                print(f"      文字块占比 {ratio:.2%} >= 50%，过滤")
+                why = "白底页插图块不足" if (is_white_page and blob < WHITE_PAGE_BLOB_THRESHOLD) else \
+                      "文字过多" if ratio >= TEXT_THRESHOLD else \
+                      "无插图块"
+                print(f"      文字块占比 {ratio:.2%}  插图块占比 {blob:.2%}  白底{white_ratio:.0%}  过滤 ({why})")
 
         if not kept_names:
             print(f"  无保留图片，跳过")
+            continue
+
+        # 保留张数过少：不复制，记入 skipped_books.jsonl
+        if len(kept_names) < MIN_KEEP_COUNT:
+            with open(SKIPPED_JSONL, "a", encoding="utf-8") as f:
+                f.write(json.dumps({
+                    "book_dir": book["book_dir"],
+                    "kept": len(kept_names),
+                    "total": len(book["images"]),
+                }, ensure_ascii=False) + "\n")
+            skipped_books += 1
+            print(f"  仅保留 {len(kept_names)} 张（不足 {MIN_KEEP_COUNT} 张），丢弃并记录到 skipped_books.jsonl")
             continue
 
         # 输出文件夹按实际保留张数命名
@@ -172,6 +260,8 @@ def main():
         print(f"  保留 {len(kept_names)} 张 -> {new_book_dir}")
 
     print(f"\n完成：本次新增 {new_books} 本绘本（共 {total_books} 本），{new_images} 张图片")
+    if skipped_books:
+        print(f"张数不足丢弃: {skipped_books} 本，记录在 {SKIPPED_JSONL}")
     print(f"输出 jsonl: {OUTPUT_JSONL}")
     print(f"保留图片: {OUTPUT_CROP_DIR}")
 
