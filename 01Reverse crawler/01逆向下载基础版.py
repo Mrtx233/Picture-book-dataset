@@ -7,7 +7,7 @@ from datetime import datetime
 
 # ============================================================
 # 下载文件保存的目录
-OUTPUT_DIR = r"D:\A_PythonCode\Picture book dataset\01Reverse crawler\output"
+OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output")
 # 任务记录 JSON，格式：{链接: {"status": "pending"|"success"|"failed", "failed_at": "..."}}
 TASKS_JSON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stories.json")
 # 登录账号
