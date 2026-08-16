@@ -258,8 +258,7 @@
     "status": "success"
   },
   "https://storyweaver.org.in/en/stories/946-too-much-noise": {
-    "status": "failed",
-    "failed_at": "2026-08-14 14:52:33"
+    "status": "success"
   },
   "https://storyweaver.org.in/en/stories/987-tak-tak": {
     "status": "pending"

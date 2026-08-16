@@ -14,18 +14,22 @@ TASKS_JSON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "stories.j
 PASSWORD = "12345678"
 # [1] 检查用户状态固定使用的邮箱（不参与登录轮换）
 STATUS_CHECK_EMAIL = "mrtx0505@outlook.com"
-# 邮箱列表 JSON 文件
-EMAILS_JSON = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outlook.json")
+# 邮箱列表 JSONL 文件，每行：{"email": "...", "status": "...", "url": "...", "failed_at": "..."}
+EMAILS_JSONL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "outlook.jsonl")
 # ============================================================
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # 加载邮箱列表
-if os.path.isfile(EMAILS_JSON):
-    with open(EMAILS_JSON, "r", encoding="utf-8") as f:
-        email_list = json.load(f)
+if os.path.isfile(EMAILS_JSONL):
+    email_list = []
+    with open(EMAILS_JSONL, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                email_list.append(json.loads(line))
 else:
-    print("outlook.json 不存在，请创建邮箱列表文件。")
+    print("outlook.jsonl 不存在，请先运行 00添加邮箱.py 生成邮箱列表文件。")
     exit()
 
 today_str = datetime.now().strftime("%Y-%m-%d")
@@ -114,10 +118,11 @@ def do_login(session, email):
 
 
 def mark_email_failed():
-    """记录当前邮箱的失败时间戳到 outlook.json"""
+    """记录当前邮箱的失败时间戳到 outlook.jsonl"""
     email_list[email_index]["failed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open(EMAILS_JSON, "w", encoding="utf-8") as f:
-        json.dump(email_list, f, ensure_ascii=False, indent=2)
+    with open(EMAILS_JSONL, "w", encoding="utf-8") as f:
+        for e in email_list:
+            f.write(json.dumps(e, ensure_ascii=False) + "\n")
     print(f"  已记录邮箱 {EMAIL} 的失败时间")
 
 
